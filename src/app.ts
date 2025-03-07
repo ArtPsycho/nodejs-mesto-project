@@ -1,8 +1,8 @@
-import express, { NextFunction, Request, Response } from 'express'
+import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import userRouter from "./routes/users";
-import cardRouter from "./routes/cards";
+import userRouter from './routes/users';
+import cardRouter from './routes/cards';
 
 const { PORT = 3000 } = process.env;
 
@@ -32,8 +32,8 @@ app.use(express.json());
 app.use('/users', userRouter);
 app.use('/cards', cardRouter);
 app.use('*', (req: Request, res: Response) => {
-  res.status(404).send({message: 'Упс. Ошибочка 404. К сожалению, не удалось найти запрошенный URL на нашем сервере🥺'})
-})
+  res.status(404).send({ message: 'Упс. Ошибочка 404. К сожалению, не удалось найти запрошенный URL на нашем сервере🥺' });
+});
 
 // Запуск сервера
 app.listen(PORT, () => {

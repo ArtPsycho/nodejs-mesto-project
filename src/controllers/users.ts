@@ -1,5 +1,6 @@
-import { Request, Response } from "express";
-import User from "../models/user";
+import { Request, Response } from 'express';
+import mongoose from 'mongoose';
+import User from '../models/user';
 
 class UserController {
   // Получить всех пользователей
@@ -8,17 +9,17 @@ class UserController {
       const users = await User.find();
       res.status(200).json(users);
     } catch (error) {
-      res.status(500).json({ message: "Ошибка при получении пользователей", error });
+      res.status(500).json({ message: 'Ошибка при получении пользователей', error });
     }
   }
 
   // Получить конкретного пользователя по ID
-  static async getUser (req: Request, res: Response): Promise<void> {
+  static async getUser(req: Request, res: Response): Promise<void> {
     try {
       // Ищем пользователя по ID
       const user = await User.findById(req.params.userId);
       if (!user) {
-        res.status(404).json({ message: "Пользователь не найден!" });
+        res.status(404).json({ message: 'Пользователь не найден!' });
         return;
       }
 
@@ -32,7 +33,11 @@ class UserController {
 
       res.status(200).json(response); // Возвращаем ответ
     } catch (error) {
-      res.status(500).json({ message: "Ошибка при получении пользователя", error });
+      if (error instanceof mongoose.Error.CastError) {
+        res.status(400).send({ message: 'Некорректный ID пользователя' });
+        return;
+      }
+      res.status(500).send({ message: 'Ошибка при получении пользователя' });
     }
   }
 
@@ -44,7 +49,13 @@ class UserController {
       await newUser.save();
       res.status(201).json(newUser);
     } catch (error) {
-      res.status(400).json({ message: "Ошибка при создании пользователя", error });
+      if (error instanceof mongoose.Error.ValidationError) {
+        // Если ошибка является ValidationError, возвращаем статус 400
+        res.status(400).send({ message: 'Ошибка при создании пользователя: некорректные данные' });
+      } else {
+        // Для всех остальных ошибок возвращаем статус 500
+        res.status(500).send({ message: 'Ошибка при создании пользователя' });
+      }
     }
   }
 
@@ -55,17 +66,23 @@ class UserController {
       const user = await User.findByIdAndUpdate(
         req.user._id,
         { name, about },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
 
       if (!user) {
-        res.status(404).json({ message: "Пользователь не найден!" });
+        res.status(404).json({ message: 'Пользователь не найден!' });
         return;
       }
 
       res.status(200).json(user);
     } catch (error) {
-      res.status(400).json({ message: "Ошибка при обновлении профиля", error });
+      if (error instanceof mongoose.Error.ValidationError) {
+        // Если ошибка является ValidationError, возвращаем статус 400
+        res.status(400).send({ message: 'Ошибка при создании профиля: некорректные данные' });
+      } else {
+        // Для всех остальных ошибок возвращаем статус 500
+        res.status(500).send({ message: 'Ошибка при создании профиля' });
+      }
     }
   }
 
@@ -76,17 +93,23 @@ class UserController {
       const user = await User.findByIdAndUpdate(
         req.user._id,
         { avatar },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
 
       if (!user) {
-        res.status(404).json({ message: "Пользователь не найден!" });
+        res.status(404).json({ message: 'Пользователь не найден!' });
         return;
       }
 
       res.status(200).json(user);
     } catch (error) {
-      res.status(400).json({ message: "Ошибка при обновлении аватара", error });
+      if (error instanceof mongoose.Error.ValidationError) {
+        // Если ошибка является ValidationError, возвращаем статус 400
+        res.status(400).send({ message: 'Ошибка при создании аватара: некорректные данные' });
+      } else {
+        // Для всех остальных ошибок возвращаем статус 500
+        res.status(500).send({ message: 'Ошибка при создании аватара' });
+      }
     }
   }
 }
