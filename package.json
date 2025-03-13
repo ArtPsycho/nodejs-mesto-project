@@ -13,9 +13,14 @@
   "author": "Михайленко Денис",
   "license": "ISC",
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/express-winston": "^3.0.4",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^18.19.79",
+    "@types/validator": "^13.12.2",
+    "@types/winston": "^2.4.4",
     "@typescript-eslint/eslint-plugin": "^8.26.0",
     "@typescript-eslint/parser": "^8.26.0",
     "eslint": "^8.2.0",
@@ -27,8 +32,16 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "bcrypt": "^5.1.1",
+    "celebrate": "^15.0.3",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "mongoose": "^6.13.8"
+    "express-winston": "^4.2.0",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^6.13.8",
+    "validator": "^13.12.0",
+    "winston": "^3.17.0"
   }
 }

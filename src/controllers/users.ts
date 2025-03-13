@@ -1,29 +1,51 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import User from '../models/user';
 
 class UserController {
-  // Получить всех пользователей
-  static async getUsers(req: Request, res: Response): Promise<void> {
+  static async login(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { email, password } = req.body;
+    try {
+      const user = await User.findUserByCredentials(email, password);
+
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        res.status(500).send({ message: 'Секретный ключ не установлен' });
+        return;
+      }
+
+      const token = jwt.sign(
+        { _id: user._id },
+        jwtSecret,
+        { expiresIn: '30d' },
+      );
+
+      res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      res.status(200).send({ message: 'Успешный вход', token });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const users = await User.find();
       res.status(200).json(users);
     } catch (error) {
-      res.status(500).json({ message: 'Ошибка при получении пользователей', error });
+      next(error);
     }
   }
 
-  // Получить конкретного пользователя по ID
-  static async getUser(req: Request, res: Response): Promise<void> {
+  static async getUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Ищем пользователя по ID
       const user = await User.findById(req.params.userId);
       if (!user) {
         res.status(404).json({ message: 'Пользователь не найден!' });
         return;
       }
 
-      // Формируем ответ в нужном формате
       const response = {
         name: user.name,
         about: user.about,
@@ -31,36 +53,55 @@ class UserController {
         _id: user._id.toString(),
       };
 
-      res.status(200).json(response); // Возвращаем ответ
+      res.status(200).json(response);
     } catch (error) {
       if (error instanceof mongoose.Error.CastError) {
         res.status(400).send({ message: 'Некорректный ID пользователя' });
         return;
       }
-      res.status(500).send({ message: 'Ошибка при получении пользователя' });
+      next(error);
     }
   }
 
-  // Создать нового пользователя
-  static async createUser(req: Request, res: Response): Promise<void> {
-    const { name, about, avatar } = req.body;
+  static async getCurrentUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { _id } = req.user;
+
     try {
-      const newUser = new User({ name, about, avatar });
+      const user = await User.findById(_id);
+      if (!user) {
+        res.status(401).send({ message: 'Требуется авторизация' });
+        return;
+      }
+      const { password, ...userData } = user.toObject();
+      res.send(userData);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { email, password, name, about, avatar } = req.body;
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = new User({
+        email,
+        password: hashedPassword,
+        name,
+        about,
+        avatar,
+      });
       await newUser.save();
-      res.status(201).json(newUser);
+      res.status(201).json(newUser );
     } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {
-        // Если ошибка является ValidationError, возвращаем статус 400
         res.status(400).send({ message: 'Ошибка при создании пользователя: некорректные данные' });
-      } else {
-        // Для всех остальных ошибок возвращаем статус 500
-        res.status(500).send({ message: 'Ошибка при создании пользователя' });
+        return;
       }
+      next(error);
     }
   }
 
-  // Обновить профиль пользователя
-  static async updateProfile(req: Request, res: Response): Promise<void> {
+  static async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { name, about } = req.body;
     try {
       const user = await User.findByIdAndUpdate(
@@ -77,17 +118,14 @@ class UserController {
       res.status(200).json(user);
     } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {
-        // Если ошибка является ValidationError, возвращаем статус 400
         res.status(400).send({ message: 'Ошибка при создании профиля: некорректные данные' });
-      } else {
-        // Для всех остальных ошибок возвращаем статус 500
-        res.status(500).send({ message: 'Ошибка при создании профиля' });
+        return;
       }
+      next(error);
     }
   }
 
-  // Обновить аватар пользователя
-  static async updateAvatar(req: Request, res: Response): Promise<void> {
+  static async updateAvatar(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { avatar } = req.body;
     try {
       const user = await User.findByIdAndUpdate(
@@ -104,12 +142,10 @@ class UserController {
       res.status(200).json(user);
     } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {
-        // Если ошибка является ValidationError, возвращаем статус 400
         res.status(400).send({ message: 'Ошибка при создании аватара: некорректные данные' });
-      } else {
-        // Для всех остальных ошибок возвращаем статус 500
-        res.status(500).send({ message: 'Ошибка при создании аватара' });
+        return;
       }
+      next(error);
     }
   }
 }

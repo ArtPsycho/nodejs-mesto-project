@@ -1,20 +1,20 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import Card from '../models/card';
 
 class CardController {
   // Получение всех карточек
-  async getCards(req: Request, res: Response) {
+  async getCards(req: Request, res: Response, next: NextFunction) {
     try {
       const cards = await Card.find();
       res.status(200).send(cards);
     } catch (error) {
-      res.status(500).send({ message: 'Ошибка при получении карточек' });
+      next(error);
     }
   }
 
   // Создание новой карточки
-  async createCard(req: Request, res: Response) {
+  async createCard(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { name, link } = req.body;
 
     try {
@@ -26,47 +26,41 @@ class CardController {
       res.status(201).send(card);
     } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {
-        // Если ошибка является ValidationError, возвращаем статус 400
         res.status(400).send({ message: 'Ошибка при создании карточки: некорректные данные' });
-      } else {
-        // Для всех остальных ошибок возвращаем статус 500
-        res.status(500).send({ message: 'Ошибка при создании карточки' });
+        return;
       }
+      next(error);
     }
   }
 
   // Удаление карточки
-  async deleteCard(req: Request, res: Response): Promise<void> {
+  async deleteCard(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      // Сначала ищем карточку по ID
       const card = await Card.findById(req.params.cardId);
 
-      // Проверяем, существует ли карточка
       if (!card) {
         res.status(404).send({ message: 'Карточка не найдена' });
         return;
       }
 
-      // Проверяем права доступа
       if (String(card.owner) !== String(req.user._id)) {
         res.status(403).send({ message: 'Нет прав для удаления этой карточки' });
         return;
       }
 
       await Card.findByIdAndRemove(req.params.cardId);
-
       res.status(200).send({ message: 'Карточка удалена' });
     } catch (error) {
       if (error instanceof mongoose.Error.CastError) {
         res.status(400).send({ message: 'Некорректный ID карточки' });
         return;
       }
-      res.status(500).send({ message: 'Ошибка при удалении карточки' });
+      next(error);
     }
   }
 
   // Лайк карточки
-  async likeCard(req: Request, res: Response): Promise<void> {
+  async likeCard(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const card = await Card.findByIdAndUpdate(
         req.params.cardId,
@@ -85,12 +79,12 @@ class CardController {
         res.status(400).send({ message: 'Некорректный ID карточки' });
         return;
       }
-      res.status(500).send({ message: 'Ошибка при лайке карточки' });
+      next(error);
     }
   }
 
   // Дизлайк карточки
-  async dislikeCard(req: Request, res: Response): Promise<void> {
+  async dislikeCard(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const card = await Card.findByIdAndUpdate(
         req.params.cardId,
@@ -109,7 +103,7 @@ class CardController {
         res.status(400).send({ message: 'Некорректный ID карточки' });
         return;
       }
-      res.status(500).send({ message: 'Ошибка при дизлайке карточки' });
+      next(error);
     }
   }
 }
