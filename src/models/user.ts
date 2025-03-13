@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import validator from 'validator';
 import bcrypt from 'bcrypt';
 
-interface IUser {
+export interface IUser {
   _id: string;
   email: string;
   password: string;
@@ -16,7 +16,7 @@ interface IUserModel extends mongoose.Model<IUser> {
   findUserByCredentials(email: string, password: string): Promise<IUser>;
 }
 
-const userSchema = new mongoose.Schema<IUser>({
+const userSchema = new mongoose.Schema<IUser, IUserModel>({
   email: {
     type: String,
     unique: true,

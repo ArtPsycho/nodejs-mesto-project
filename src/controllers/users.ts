@@ -23,7 +23,7 @@ class UserController {
       );
 
       res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-      res.status(200).send({ message: 'Успешный вход', token });
+      res.status(200).send({ message: 'Успешный вход' });
     } catch (err) {
       next(err);
     }
@@ -31,7 +31,7 @@ class UserController {
 
   static async getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const users = await User.find();
+      const users = await User.find().select('-password');
       res.status(200).json(users);
     } catch (error) {
       next(error);
@@ -40,7 +40,7 @@ class UserController {
 
   static async getUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = await User.findById(req.params.userId);
+      const user = await User.findById(req.params.userId).select('-password');
       if (!user) {
         res.status(404).json({ message: 'Пользователь не найден!' });
         return;
@@ -67,13 +67,20 @@ class UserController {
     const { _id } = req.user;
 
     try {
-      const user = await User.findById(_id);
+      const user = await User.findById(_id).select('-password');
       if (!user) {
         res.status(401).send({ message: 'Требуется авторизация' });
         return;
       }
-      const { password, ...userData } = user.toObject();
-      res.send(userData);
+
+      const response = {
+        name: user.name,
+        about: user.about,
+        avatar: user.avatar,
+        _id: user._id.toString(),
+      };
+
+      res.status(200).json(response);
     } catch (error) {
       next(error);
     }
@@ -91,7 +98,8 @@ class UserController {
         avatar,
       });
       await newUser.save();
-      res.status(201).json(newUser );
+      const userData = await User.findById(newUser._id).select('-password');
+      res.status(201).json(userData);
     } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {
         res.status(400).send({ message: 'Ошибка при создании пользователя: некорректные данные' });
@@ -107,7 +115,7 @@ class UserController {
       const user = await User.findByIdAndUpdate(
         req.user._id,
         { name, about },
-        { new: true, runValidators: true },
+        { new: true, runValidators: true, select: '-password' },
       );
 
       if (!user) {
@@ -131,7 +139,7 @@ class UserController {
       const user = await User.findByIdAndUpdate(
         req.user._id,
         { avatar },
-        { new: true, runValidators: true },
+        { new: true, runValidators: true, select: '-password' },
       );
 
       if (!user) {
