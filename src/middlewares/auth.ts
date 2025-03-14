@@ -6,14 +6,13 @@ interface JwtPayload {
 }
 
 const auth = (req: Request, res: Response, next: NextFunction): void => {
-  const { authorization } = req.headers;
+  const token = req.cookies.token;
 
-  if (!authorization || !authorization.startsWith('Bearer ')) {
+  if (!token) {
     res.status(401).send({ message: 'Необходима авторизация' });
     return;
   }
 
-  const token = authorization.replace('Bearer ', '');
   let payload: JwtPayload;
 
   try {
